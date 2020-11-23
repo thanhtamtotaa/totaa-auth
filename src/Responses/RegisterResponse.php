@@ -22,7 +22,7 @@ class RegisterResponse implements RegisterResponseContract
         } elseif (!!request("urlback")) {
             return redirect(request("urlback"));
         } else {
-            return redirect()->config('fortify.home');
+            return redirect()->intended(config('fortify.home'));
         }
     }
 
