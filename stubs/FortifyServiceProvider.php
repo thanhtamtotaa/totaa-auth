@@ -39,25 +39,25 @@ class FortifyServiceProvider extends ServiceProvider
         // register new LoginResponse
         $this->app->singleton(
             \Laravel\Fortify\Contracts\LoginResponse::class,
-            \ToTaa\Auth\Responses\LoginResponse::class
+            \ToTaa\Auth\Http\Responses\LoginResponse::class
         );
 
         // register new TwofactorLoginResponse
         $this->app->singleton(
             \Laravel\Fortify\Contracts\TwoFactorLoginResponse::class,
-            \ToTaa\Auth\Responses\TwoFactorLoginResponse::class
+            \ToTaa\Auth\Http\Responses\TwoFactorLoginResponse::class
         );
 
         // register new RegisterResponse
         $this->app->singleton(
             \Laravel\Fortify\Contracts\RegisterResponse::class,
-            \ToTaa\Auth\Responses\RegisterResponse::class
+            \ToTaa\Auth\Http\Responses\RegisterResponse::class
         );
 
         // register new LoginResponse
         /*$this->app->singleton(
             \Laravel\Fortify\Contracts\LoginResponse::class,
-            \ToTaa\Auth\Responses\LoginResponse::class
+            \ToTaa\Auth\Http\Responses\LoginResponse::class
         );*/
 
         Fortify::loginView(function () {

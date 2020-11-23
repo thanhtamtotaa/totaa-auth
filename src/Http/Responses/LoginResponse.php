@@ -1,6 +1,6 @@
 <?php
 
-namespace ToTaa\Auth\Responses;
+namespace ToTaa\Auth\Http\Responses;
 
 use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
