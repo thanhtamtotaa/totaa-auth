@@ -34,7 +34,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../stubs/CreateNewUser.php' => app_path('Actions/Fortify/CreateNewUser.php'),
             __DIR__.'/../stubs/FortifyServiceProvider.php' => app_path('Providers/FortifyServiceProvider.php'),
-            __DIR__.'/../stubs/layout-navbar.blade.php' => app_path('resources/views/layouts/includes/layout-navbar.blade.php'),
+            __DIR__.'/../stubs/layout-navbar.blade.php' => resource_path('views/layouts/includes/layout-navbar.blade.php'),
         ], 'totaa-support');
     }
 }
