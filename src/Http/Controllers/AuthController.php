@@ -1,10 +1,10 @@
 <?php
 
-namespace Totaa\Auth\Http\Controllers;
+namespace ToTaa\Auth\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Auth;
-use Totaa\Auth\DataTables\AdminAuthDataTable;
+use ToTaa\Auth\DataTables\AdminAuthDataTable;
 
 class AuthController extends Controller
 {
