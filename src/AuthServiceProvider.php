@@ -3,6 +3,8 @@
 namespace ToTaa\Auth;
 
 use Illuminate\Support\ServiceProvider;
+use Totaa\Auth\Http\Livewire\AuthLivewire;
+use Livewire\Livewire;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,9 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function register()
     {
-
+        if (class_exists(Livewire::class)) {
+            Livewire::component('totaa-auth::auth-livewire', AuthLivewire::class);
+        }
     }
 
     /**
@@ -27,6 +31,8 @@ class AuthServiceProvider extends ServiceProvider
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'totaa');
 
+        $this->loadRoutesFrom(__DIR__.'/../routes/routes.php');
+
         $this->publishes([
             __DIR__.'/../stubs/fortify.php' => config_path('fortify.php'),
         ], 'totaa-config');
@@ -36,5 +42,12 @@ class AuthServiceProvider extends ServiceProvider
             __DIR__.'/../stubs/FortifyServiceProvider.php' => app_path('Providers/FortifyServiceProvider.php'),
             __DIR__.'/../stubs/layout-navbar.blade.php' => resource_path('views/layouts/includes/layout-navbar.blade.php'),
         ], 'totaa-support');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seed Service Provider need on boot() method
+        |--------------------------------------------------------------------------
+        */
+        $this->app->register(SeedServiceProvider::class);
     }
 }
