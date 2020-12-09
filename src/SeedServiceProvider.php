@@ -1,6 +1,6 @@
 <?php
 
-namespace Totaa\Auth;
+namespace ToTaa\Auth;
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Support\Facades\Artisan;
