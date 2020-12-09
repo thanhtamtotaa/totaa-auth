@@ -1,6 +1,6 @@
 <?php
 
-namespace Totaa\Auth\Http\Controllers;
+namespace ToTaa\Auth\Http\Controllers;
 
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Routing\Controller as BaseController;
