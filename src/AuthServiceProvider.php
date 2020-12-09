@@ -3,7 +3,7 @@
 namespace ToTaa\Auth;
 
 use Illuminate\Support\ServiceProvider;
-use Totaa\Auth\Http\Livewire\AuthLivewire;
+use ToTaa\Auth\Http\Livewire\AuthLivewire;
 use Livewire\Livewire;
 
 class AuthServiceProvider extends ServiceProvider
