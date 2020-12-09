@@ -16,7 +16,7 @@ class AuthController extends Controller
     public function index(AdminAuthDataTable $dataTable)
     {
         if (Auth::user()->bfo_info->hasAnyPermission(["view-account"])) {
-            return $dataTable->render('totaa-account::account', ['title' => 'Quản lý Tài khoản']);
+            return $dataTable->render('totaa::account', ['title' => 'Quản lý Tài khoản']);
         } else {
             return view('errors.dynamic', [
                 'error_code' => '403',
