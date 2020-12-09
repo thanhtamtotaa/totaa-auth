@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Totaa\Auth\Http\Controllers\AuthController;
+use ToTaa\Auth\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
