@@ -26,7 +26,8 @@
   },
   "autoload": {
     "psr-4": {
-      "ToTaa\\Auth\\": "src/"
+      "ToTaa\\Auth\\": "src/",
+      "ToTaa\\Auth\\Database\\Seeders\\": "database/seeders"
     }
   },
   "extra": {
