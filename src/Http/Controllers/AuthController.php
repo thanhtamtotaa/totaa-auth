@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Auth;
 use Totaa\Auth\DataTables\AdminAuthDataTable;
 
-class TeamController extends Controller
+class AuthController extends Controller
 {
     /**
      * index
