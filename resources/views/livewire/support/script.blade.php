@@ -10,6 +10,7 @@
         $(event.detail).modal("show");
     })
 
+    //UI block
     $(document).on("click", "[totaa-click-block-ui]", function() {
         ToTaa_BlockUI();
     });
@@ -30,26 +31,26 @@
     })
 
     //Block UI khi ấn thêm mới
-    Livewire.on('add_bfo_info', function() {
+    Livewire.on('add_account', function() {
         ToTaa_BlockUI();
     });
 
     //Gọi view sửa thông tin
-    $(document).on("click", "[totaa-edit-bfo]", function() {
+    $(document).on("click", "[totaa-edit-account]", function() {
         ToTaa_BlockUI();
-        Livewire.emit('edit_bfo_info', $(this).attr("totaa-edit-bfo"));
+        Livewire.emit('edit_account', $(this).attr("totaa-edit-account"));
     });
 
     //Gọi view set team
-    $(document).on("click", "[totaa-set-bfo-team]", function() {
+    $(document).on("click", "[totaa-link-account]", function() {
         ToTaa_BlockUI();
-        Livewire.emit('set_bfo_info_team', $(this).attr("totaa-set-bfo-team"));
+        Livewire.emit('link_account', $(this).attr("totaa-link-account"));
     });
 
     //Gọi view set thành viên
-    $(document).on("click", "[totaa-set-bfo-role]", function() {
+    $(document).on("click", "[totaa-reset-password]", function() {
         ToTaa_BlockUI();
-        Livewire.emit('set_bfo_info_role', $(this).attr("totaa-set-bfo-role"));
+        Livewire.emit('reset_password', $(this).attr("totaa-reset-password"));
     });
 
     //Xử lý khi dữ liệu đã được load xong
