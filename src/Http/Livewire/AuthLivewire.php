@@ -11,17 +11,21 @@ use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Totaa\TotaaTeam\Traits\BfoHasTeamTraits;
+use App\Actions\Fortify\PasswordValidationRules;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class AuthLivewire extends Component
 {
+    use PasswordValidationRules;
+
     /**
      * Các biến sử dụng trong Component
      *
      * @var mixed
      */
-    public $nhanvien, $mnv, $full_name, $name, $birthday, $ngay_vao_lam, $active;
-    public $bfo_info, $modal_title, $toastr_message, $team_arrays = [], $teams;
-    public $permissions, $roles, $role_arrays = [], $permission_arrays = [];
+    public $account, $account_id, $name, $email, $phone, $info_mnv, $password, $password_confirmation, $yeucaucapquyen, $active;
+    public $bfo_info, $modal_title, $toastr_message;
 
     /**
      * Cho phép cập nhật updateMode
@@ -36,7 +40,7 @@ class AuthLivewire extends Component
      *
      * @var array
      */
-    protected $listeners = ['add_bfo_info', 'view_bfo_info', 'edit_bfo_info', 'delete_bfo_info', 'set_bfo_info_team', 'set_bfo_info_role', ];
+    protected $listeners = ['edit_account', 'link_account', 'reset_password', ];
 
     /**
      * Validation rules
@@ -45,12 +49,12 @@ class AuthLivewire extends Component
      */
     protected function rules() {
         return [
-            'full_name' => 'required',
             'name' => 'required',
-            'birthday' => 'nullable|date_format:d-m-Y',
-            'ngay_vao_lam' => 'nullable|date_format:d-m-Y',
+            'email' => 'required|email',
+            'phone' => 'required|numeric',
+            'info_mnv' => 'nullable|exists:bfo_infos,mnv',
+            'password' => $this->passwordRules(),
             'active' => 'nullable|boolean',
-            'teams' => 'nullable|exists:teams,id',
         ];
     }
 
@@ -72,7 +76,6 @@ class AuthLivewire extends Component
     public function mount()
     {
         $this->bfo_info = Auth::user()->bfo_info;
-        $this->created_by = $this->bfo_info->mnv;
     }
 
     /**
@@ -86,20 +89,9 @@ class AuthLivewire extends Component
         $this->validateOnly($propertyName);
     }
 
-    public function updatedFullName()
+    public function updatedName()
     {
-        $this->full_name = mb_convert_case(trim($this->full_name), MB_CASE_TITLE, "UTF-8");
-        $names = explode(' ', $this->full_name);
-        $this->name = array_pop($names);
-    }
-
-    public function updatedMnv()
-    {
-        if ((!!$this->nhanvien && $this->nhanvien->mnv != $this->mnv) || !!!$this->nhanvien) {
-            $this->validate([
-                'mnv' => 'required|unique:bfo_infos,mnv',
-            ]);
-        }
+        $this->name = mb_convert_case(trim($this->name), MB_CASE_TITLE, "UTF-8");
     }
 
     /**
@@ -118,165 +110,62 @@ class AuthLivewire extends Component
     }
 
     /**
-     * add_bfo_info method
+     * edit_account method
      *
      * @return void
      */
-    public function add_bfo_info()
+    public function edit_account($id)
     {
-        if ($this->bfo_info->cannot("add-bfo")) {
+        if ($this->bfo_info->cannot("edit-account")) {
             $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
             return null;
         }
 
-        $this->modal_title = "Thêm nhân viên mới";
-        $this->toastr_message = "Thêm nhân viên thành công";
-        $this->active = true;
-        $this->dispatchBrowserEvent('show_modal', "#add_edit_modal");
-    }
-
-    /**
-     * edit_bfo_info method
-     *
-     * @return void
-     */
-    public function edit_bfo_info($mnv)
-    {
-        if ($this->bfo_info->cannot("edit-bfo")) {
-            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
-            return null;
-        }
-
-        $this->modal_title = "Chỉnh sửa nhân viên";
-        $this->toastr_message = "Chỉnh sửa nhân viên thành công";
+        $this->modal_title = "Chỉnh sửa tài khoản - ID: ". $id;
+        $this->toastr_message = "Chỉnh sửa tài khoản thành công";
         $this->editStatus = true;
         $this->updateMode = true;
 
-        $this->mnv = $mnv;
-        $this->nhanvien = BfoInfo::find($this->mnv);
-        $this->full_name = $this->nhanvien->full_name;
-        $this->name = $this->nhanvien->name;
-        $this->birthday = !!$this->nhanvien->birthday ? $this->nhanvien->birthday->format("d-m-Y") : NULL;
-        $this->ngay_vao_lam = !!$this->nhanvien->ngay_vao_lam ? $this->nhanvien->ngay_vao_lam->format("d-m-Y") : NULL;
-        $this->active = !!$this->nhanvien->active;
+        $this->account_id = $id;
+        $this->account = User::withTrashed()->find($this->account_id);
+        $this->name = $this->account->name;
+        $this->email = $this->account->email;
+        $this->phone = $this->account->phone;
+        $this->info_mnv = $this->account->info_mnv;
+        $this->active = !!!$this->account->deleted_at;
 
         $this->dispatchBrowserEvent('show_modal', "#add_edit_modal");
     }
 
     /**
-     * save_bfo_info
+     * save_account
      *
      * @return void
      */
-    public function save_bfo_info()
+    public function save_account()
     {
-        if ($this->bfo_info->cannot("add-bfo")) {
+        if ($this->bfo_info->cannot("edit-account")) {
             $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
             return null;
         }
 
-        if ((!!$this->nhanvien && $this->nhanvien->mnv != $this->mnv) || !!!$this->nhanvien) {
-            $this->validate([
-                'mnv' => 'required|unique:bfo_infos,mnv',
-            ]);
-        }
-
-       $validateData = $this->validate();
-
-       $validateData["mnv"] = $this->mnv;
-
-       if (!!!$validateData["birthday"]) {
-        $validateData["birthday"] = NULL;
-       }
-
-       if (!!!$validateData["ngay_vao_lam"]) {
-        $validateData["ngay_vao_lam"] = NULL;
-       }
-
-       try {
-            if (!!$this->nhanvien) {
-                $old_nhanvien = $this->nhanvien;
-                $old_mnv = $old_nhanvien->mnv;
-                $old_permissions = $old_nhanvien->permissions;
-                $old_roles = $old_nhanvien->roles;
-
-                if (trait_exists(HasRoles::class)) {
-                    if ($old_mnv != $this->mnv) {
-                        $this->nhanvien->syncPermissions(null);
-                        $this->nhanvien->syncRoles(null);
-                    }
-                }
-
-                $this->nhanvien->update($validateData);
-
-                if (trait_exists(HasRoles::class)) {
-                    if ($old_mnv != $this->mnv) {
-                        $this->nhanvien->syncPermissions($old_permissions);
-                        $this->nhanvien->syncRoles($old_roles);
-                    }
-                }
-            } else {
-                BfoInfo::create($validateData);
-            }
-        } catch (\Exception $e) {
-            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => implode(" - ", $e->errorInfo)]);
-            return null;
-        }
-
-        //Đầy thông tin về trình duyệt
-        $this->dispatchBrowserEvent('dt_draw');
-        $toastr_message = $this->toastr_message;
-        $this->cancel();
-        $this->dispatchBrowserEvent('toastr', ['type' => 'success', 'title' => "Thành công", 'message' => $toastr_message]);
-    }
-
-    /**
-     * set_bfo_info_team method
-     *
-     * @return void
-     */
-    public function set_bfo_info_team($mnv)
-    {
-        if ($this->bfo_info->cannot("edit-bfo")) {
-            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
-            return null;
-        }
-
-        $this->modal_title = "Set nhóm cho nhân viên";
-        $this->toastr_message = "Set nhóm cho nhân viên thành công";
-        $this->updateMode = true;
-
-        $this->mnv = $mnv;
-        $this->nhanvien = BfoInfo::find($this->mnv);
-        $this->full_name = $this->nhanvien->full_name;
-
-        if (trait_exists(BfoHasTeamTraits::class)) {
-            $this->teams = $this->nhanvien->member_of_teams->pluck("id")->toArray();
-            $this->team_arrays = Team::where("active", true)->orderBy("order")->orderBy("id")->select("id", "name")->get()->toArray();
-        }
-
-        $this->dispatchBrowserEvent('show_modal', "#set_bfo_team_modal");
-    }
-
-    /**
-     * save_bfo_info_team
-     *
-     * @return void
-     */
-    public function save_bfo_info_team()
-    {
-        if ($this->bfo_info->cannot("edit-bfo")) {
-            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
-            return null;
-        }
-
-        $this->validate([
-            'teams' => 'nullable|array',
-            'teams.*' => 'nullable|exists:teams,id',
+       $validateData = $this->validate([
+            'name' => 'required',
+            'email' => 'required|email',
+            'phone' => 'required|numeric',
         ]);
 
         try {
-            $this->nhanvien->member_of_teams()->sync($this->teams);
+            $this->account->update($validateData);
+
+            if (!!$this->active && !!$this->account->deleted_at) {
+                $this->account->restore();
+            }
+
+            if (!!!$this->active && !!!$this->account->deleted_at) {
+                $this->account->delete();
+            }
+
         } catch (\Exception $e) {
             $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => implode(" - ", $e->errorInfo)]);
             return null;
@@ -288,53 +177,53 @@ class AuthLivewire extends Component
         $this->cancel();
         $this->dispatchBrowserEvent('toastr', ['type' => 'success', 'title' => "Thành công", 'message' => $toastr_message]);
     }
-
+    
     /**
-     * set_bfo_info_role method
+     * link_account method
      *
      * @return void
      */
-    public function set_bfo_info_role($mnv)
+    public function link_account($id)
     {
-        if ($this->bfo_info->cannot("edit-bfo")) {
+        if ($this->bfo_info->cannot("edit-account")) {
             $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
             return null;
         }
 
-        $this->modal_title = "Set quyền cho nhân viên";
-        $this->toastr_message = "Set quyền cho nhân viên thành công";
+        $this->modal_title = "Liên kết nhân viên";
+        $this->toastr_message = "Liên kết thông tin nhân viên thành công";
+        $this->editStatus = true;
         $this->updateMode = true;
 
-        $this->mnv = $mnv;
-        $this->nhanvien = BfoInfo::find($this->mnv);
-        $this->full_name = $this->nhanvien->full_name;
-        $this->ngay_vao_lam = $this->nhanvien->ngay_vao_lam;
+        $this->account_id = $id;
+        $this->account = User::withTrashed()->find($this->account_id);
+        $this->name = $this->account->name;
+        $this->email = $this->account->email;
+        $this->phone = $this->account->phone;
+        $this->info_mnv = $this->account->info_mnv;
+        $this->yeucaucapquyen = $this->account->yeucaucapquyen;
 
-        if (trait_exists(HasRoles::class)) {
-            $this->permissions = $this->nhanvien->permissions()->pluck("name", "id")->toArray();
-            $this->roles = $this->nhanvien->roles()->pluck("name", "id")->toArray();
-            $this->permission_arrays = Permission::all()->groupBy("group")->toArray();
-            $this->role_arrays = Role::all()->groupBy("group")->toArray();
-        }
-
-        $this->dispatchBrowserEvent('show_modal', "#set_bfo_info_modal");
+        $this->dispatchBrowserEvent('show_modal', "#link_modal");
     }
 
     /**
-     * save_bfo_info_role
+     * save_link_account method
      *
      * @return void
      */
-    public function save_bfo_info_role()
+    public function save_link_account()
     {
-        if ($this->bfo_info->cannot("edit-bfo")) {
+        if ($this->bfo_info->cannot("edit-account")) {
             $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
             return null;
         }
 
+        $validateData = $this->validate([
+            'info_mnv' => 'nullable|exists:bfo_infos,mnv',
+        ]);
+
         try {
-            $this->nhanvien->syncPermissions($this->permissions);
-            $this->nhanvien->syncRoles($this->roles);
+            $this->account->forceFill($validateData)->save();
         } catch (\Exception $e) {
             $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => implode(" - ", $e->errorInfo)]);
             return null;
@@ -347,4 +236,61 @@ class AuthLivewire extends Component
         $this->dispatchBrowserEvent('toastr', ['type' => 'success', 'title' => "Thành công", 'message' => $toastr_message]);
     }
 
+    
+    /**
+     * reset_password method
+     *
+     * @return void
+     */
+    public function reset_password($id)
+    {
+        if ($this->bfo_info->cannot("edit-account")) {
+            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
+            return null;
+        }
+
+        $this->modal_title = "Reset mật khẩu";
+        $this->toastr_message = "Reset mật khẩu thành công";
+        $this->editStatus = true;
+        $this->updateMode = true;
+
+        $this->account_id = $id;
+        $this->account = User::withTrashed()->find($this->account_id);
+        $this->name = $this->account->name;
+        $this->email = $this->account->email;
+        $this->phone = $this->account->phone;
+        $this->yeucaucapquyen = $this->account->yeucaucapquyen;
+
+        $this->dispatchBrowserEvent('show_modal', "#reset_modal");
+    }
+
+    /**
+     * save_password method
+     *
+     * @return void
+     */
+    public function save_password()
+    {
+        if ($this->bfo_info->cannot("edit-account")) {
+            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => "Bạn không có quyền thực hiện hành động này"]);
+            return null;
+        }
+
+        $validateData = $this->validate([
+            'password' => $this->passwordRules(),
+        ]);
+
+        try {
+            $this->account->forceFill(['password' => Hash::make($this->password),])->save();
+        } catch (\Exception $e) {
+            $this->dispatchBrowserEvent('toastr', ['type' => 'warning', 'title' => "Thất bại", 'message' => implode(" - ", $e->errorInfo)]);
+            return null;
+        }
+
+        //Đầy thông tin về trình duyệt
+        $this->dispatchBrowserEvent('dt_draw');
+        $toastr_message = $this->toastr_message;
+        $this->cancel();
+        $this->dispatchBrowserEvent('toastr', ['type' => 'success', 'title' => "Thành công", 'message' => $toastr_message]);
+    }
 }
